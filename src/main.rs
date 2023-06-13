@@ -10,13 +10,22 @@ use tracing::{error, info};
 
 struct Bot;
 
+fn message_has_image(msg:& Message) -> bool{
+    let Some(attachment) = msg.attachments.get(0) else {return false};
+    if attachment.content_type.as_ref().unwrap().contains("image") {
+        return true;
+    }
+    return false;
+}
+
 #[async_trait]
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
-        // let Some(attachment) = msg.attachments.get(0) else {return};
+
+        println!("{}", message_has_image(&msg));
 
         // println!("{}", attachment.content_type.as_ref().unwrap());
-        println!("{:#?}", msg);
+        // println!("{:#?}", msg);
         // println!("{:#?}", 
         //     match attachment.content_type {
         //         None => "none",

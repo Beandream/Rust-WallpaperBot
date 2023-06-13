@@ -13,6 +13,16 @@ struct Bot;
 #[async_trait]
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
+        // let Some(attachment) = msg.attachments.get(0) else {return};
+
+        // println!("{}", attachment.content_type.as_ref().unwrap());
+        println!("{:#?}", msg);
+        // println!("{:#?}", 
+        //     match attachment.content_type {
+        //         None => "none",
+        //         Some(ref x) => x,
+        //     });
+
         if msg.content == "!hello" {
             if let Err(e) = msg.channel_id.say(&ctx.http, "world!").await {
                 error!("Error sending message: {:?}", e);

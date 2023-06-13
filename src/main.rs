@@ -24,14 +24,6 @@ impl EventHandler for Bot {
 
         println!("{}", message_has_image(&msg));
 
-        // println!("{}", attachment.content_type.as_ref().unwrap());
-        // println!("{:#?}", msg);
-        // println!("{:#?}", 
-        //     match attachment.content_type {
-        //         None => "none",
-        //         Some(ref x) => x,
-        //     });
-
         if msg.content == "!hello" {
             if let Err(e) = msg.channel_id.say(&ctx.http, "world!").await {
                 error!("Error sending message: {:?}", e);
@@ -45,7 +37,10 @@ impl EventHandler for Bot {
         let guild_id = GuildId(433758414880112640);
 
         let _ = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
-            commands.create_application_command(|command| {command.name("hello").description("Say Hello") })
+            commands
+                .create_application_command(|command| {command.name("hello").description("Say Hello!") })
+                .create_application_command(|command| {command.name("clean").description("Clean channel of non-submission messages.") })
+
         }).await.unwrap();
 
     }
@@ -55,6 +50,7 @@ impl EventHandler for Bot {
 
             let response_content = match command.data.name.as_str() {
                 "hello" => "hello".to_owned(),
+                "clean" => "test".to_owned(),
                 command => unreachable!("Unknown command: {}", command),
             };
 

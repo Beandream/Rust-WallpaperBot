@@ -4,18 +4,38 @@ use serenity::model::channel::Message;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
+use serenity::model::prelude::ChannelId;
 use serenity::prelude::*;
 use shuttle_secrets::SecretStore;
 use tracing::{error, info};
 
 struct Bot;
 
-fn message_has_image(msg:& Message) -> bool{
+fn message_has_image(msg :&Message) -> bool{
     let Some(attachment) = msg.attachments.get(0) else {return false};
     if attachment.content_type.as_ref().unwrap().contains("image") {
         return true;
     }
     return false;
+}
+
+async fn delete_msg(ctx: &Context, msg: &Message) -> Result<(), serenity::Error> {
+    if let Err(e) = msg.delete(ctx).await {
+        println!("Error deleting message: {:?}", e);
+    }
+    Ok(())
+}
+
+
+async fn clean_channel(ctx: &Context, channel_id: &ChannelId) -> Result<(), serenity::Error> {
+    let messages = channel_id.messages(ctx, |retriever| retriever.limit(10)).await?;
+
+    for message in messages {
+        if !message_has_image(&message) {
+            delete_msg(&ctx, &message).await?;
+        }
+    }
+    Ok(())
 }
 
 #[async_trait]
@@ -46,11 +66,18 @@ impl EventHandler for Bot {
     }
     
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        // println!("{:#?}", interaction.channel_id);
+
         if let Interaction::ApplicationCommand(command) = interaction {
 
             let response_content = match command.data.name.as_str() {
                 "hello" => "hello".to_owned(),
-                "clean" => "test".to_owned(),
+                "clean" => {
+                    println!("{}", command.channel_id);
+                    if let Err(e) = clean_channel(&ctx, &command.channel_id);
+                    
+                    "Cleaning the channel of non-submission messages.".to_owned()
+                },
                 command => unreachable!("Unknown command: {}", command),
             };
 

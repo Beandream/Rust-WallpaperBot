@@ -5,6 +5,7 @@ use serenity::model::application::interaction::{Interaction, InteractionResponse
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::model::prelude::ChannelId;
+use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
 use serenity::prelude::*;
 use shuttle_secrets::SecretStore;
 use tracing::{error, info};
@@ -70,24 +71,37 @@ impl EventHandler for Bot {
 
         if let Interaction::ApplicationCommand(command) = interaction {
 
-            let response_content = match command.data.name.as_str() {
-                "hello" => "hello".to_owned(),
+            let _ = match command.data.name.as_str() {
+                "hello" => {
+                    respond_to_interaction(&ctx, &command, "hello".to_owned());
+                },
                 "clean" => {
                     println!("{}", command.channel_id);
-                    if let Err(e) = clean_channel(&ctx, &command.channel_id);
-                    
-                    "Cleaning the channel of non-submission messages.".to_owned()
+                    clean_channel(&ctx, &command.channel_id).await.expect("No worky");
+                    respond_to_interaction(&ctx, &command, "Cleaning the channel of non-submission messages.".to_owned());
                 },
                 command => unreachable!("Unknown command: {}", command),
             };
 
-            command.create_interaction_response(&ctx.http, |response| {
-                response
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|message| message.content(response_content))
+            // command.create_interaction_response(&ctx.http, |response| {
+            //     response
+            //         .kind(InteractionResponseType::ChannelMessageWithSource)
+            //         .interaction_response_data(|message| message.content(response_content))
 
-            }).await.expect("Cannot repond to slash command")
+            // }).await.expect("Cannot repond to slash command")
         }
+    }
+}
+
+async fn respond_to_interaction(ctx: &Context, command: &ApplicationCommandInteraction, response_content: String) {
+
+    if let Err(why) = command.create_interaction_response(&ctx.http, |response| {
+        response
+            .kind(InteractionResponseType::ChannelMessageWithSource)
+            .interaction_response_data(|message| message.content(response_content))
+                
+    }).await {
+        println!("Error creating interaction response: {:?}", why);
     }
 }
 

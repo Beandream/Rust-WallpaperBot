@@ -12,6 +12,8 @@ use tracing::{error, info};
 
 struct Bot;
 
+const IMAGE_DELETE_LIMIT: u64 = 100;
+
 fn message_has_image(msg :&Message) -> bool{
     let Some(attachment) = msg.attachments.get(0) else {return false};
     if attachment.content_type.as_ref().unwrap().contains("image") {
@@ -29,7 +31,7 @@ async fn delete_msg(ctx: &Context, msg: &Message) -> Result<(), serenity::Error>
 
 
 async fn clean_channel(ctx: &Context, channel_id: &ChannelId) -> Result<(), serenity::Error> {
-    let messages = channel_id.messages(ctx, |retriever| retriever.limit(10)).await?;
+    let messages = channel_id.messages(ctx, |retriever| retriever.limit(IMAGE_DELETE_LIMIT)).await?;
 
     for message in messages {
         if !message_has_image(&message) {
@@ -42,6 +44,10 @@ async fn clean_channel(ctx: &Context, channel_id: &ChannelId) -> Result<(), sere
 #[async_trait]
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
+
+        if message_has_image(&msg) {
+            clean_channel(&ctx, &msg.channel_id).await.expect("Could not clean channel");
+        }
 
         if msg.content == "!hello" {
             if let Err(e) = msg.channel_id.say(&ctx.http, "world!").await {
@@ -75,7 +81,7 @@ impl EventHandler for Bot {
                 },
                 "clean" => {
                     respond_to_interaction(&ctx, &command, "Cleaning the channel of non-submission messages.".to_owned()).await.expect("Cannot repond to slash command");
-                    clean_channel(&ctx, &command.channel_id).await.expect("No worky");
+                    clean_channel(&ctx, &command.channel_id).await.expect("Could not clean channel");
 
                 },
                 command => unreachable!("Unknown command: {}", command),

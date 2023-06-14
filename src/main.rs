@@ -43,8 +43,6 @@ async fn clean_channel(ctx: &Context, channel_id: &ChannelId) -> Result<(), sere
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
 
-        println!("{}", message_has_image(&msg));
-
         if msg.content == "!hello" {
             if let Err(e) = msg.channel_id.say(&ctx.http, "world!").await {
                 error!("Error sending message: {:?}", e);
@@ -73,36 +71,29 @@ impl EventHandler for Bot {
 
             let _ = match command.data.name.as_str() {
                 "hello" => {
-                    respond_to_interaction(&ctx, &command, "hello".to_owned());
+                    respond_to_interaction(&ctx, &command, "hello".to_owned()).await.expect("Cannot repond to slash command")
                 },
                 "clean" => {
-                    println!("{}", command.channel_id);
+                    respond_to_interaction(&ctx, &command, "Cleaning the channel of non-submission messages.".to_owned()).await.expect("Cannot repond to slash command");
                     clean_channel(&ctx, &command.channel_id).await.expect("No worky");
-                    respond_to_interaction(&ctx, &command, "Cleaning the channel of non-submission messages.".to_owned());
+
                 },
                 command => unreachable!("Unknown command: {}", command),
             };
-
-            // command.create_interaction_response(&ctx.http, |response| {
-            //     response
-            //         .kind(InteractionResponseType::ChannelMessageWithSource)
-            //         .interaction_response_data(|message| message.content(response_content))
-
-            // }).await.expect("Cannot repond to slash command")
         }
     }
 }
 
-async fn respond_to_interaction(ctx: &Context, command: &ApplicationCommandInteraction, response_content: String) {
+async fn respond_to_interaction(ctx: &Context, command: &ApplicationCommandInteraction, response_content: String) -> Result<(), serenity::Error> {
 
-    if let Err(why) = command.create_interaction_response(&ctx.http, |response| {
+    command.create_interaction_response(&ctx.http, |response| {
         response
             .kind(InteractionResponseType::ChannelMessageWithSource)
             .interaction_response_data(|message| message.content(response_content))
-                
-    }).await {
-        println!("Error creating interaction response: {:?}", why);
-    }
+
+    }).await?;
+    
+    Ok(())
 }
 
 #[shuttle_runtime::main]

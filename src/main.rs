@@ -75,13 +75,11 @@ impl EventHandler for Bot {
     }
     
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        // println!("{:#?}", interaction.channel_id);
-
         if let Interaction::ApplicationCommand(command) = interaction {
 
             let _ = match command.data.name.as_str() {
                 "hello" => {
-                    respond_to_interaction(&ctx, &command, "Hello!".to_owned()).await.expect("Cannot repond to slash command")
+                    respond_to_interaction(&ctx, &command, format!("Hello {}!", command.user.name) ).await.expect("Cannot repond to slash command")
                 },
                 "clean" => {
                     respond_to_interaction(&ctx, &command, "Cleaning the channel of non-submission messages.".to_owned()).await.expect("Cannot repond to slash command");

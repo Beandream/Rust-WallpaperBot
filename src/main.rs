@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use serenity::async_trait;
+use serenity::model::Permissions;
 use serenity::model::channel::Message;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
@@ -23,7 +24,7 @@ fn message_has_image(msg :&Message) -> bool{
 }
 
 async fn delete_msg(ctx: &Context, msg: &Message) -> Result<(), serenity::Error> {
-    if let Err(e) = msg.delete(ctx).await {
+    if let Err(e) = msg.delete(&ctx).await {
         println!("Error deleting message: {:?}", e);
     }
     Ok(())
@@ -59,12 +60,15 @@ impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         info!("{} is connected!", ready.user.name);
 
-        let guild_id = GuildId(433758414880112640);
+        let guild_id: GuildId = GuildId(433758414880112640);
 
         let _ = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
-                .create_application_command(|command| {command.name("hello").description("Say Hello!") })
-                .create_application_command(|command| {command.name("clean").description("Clean channel of non-submission messages.") })
+                .create_application_command(|command| {command.name("hello")
+                    .description("Say Hello!")})
+                .create_application_command(|command| {command.name("clean")
+                    .description("Clean channel of non-submission messages.")
+                    .default_member_permissions(Permissions::MANAGE_MESSAGES)})
 
         }).await.unwrap();
 
@@ -77,7 +81,7 @@ impl EventHandler for Bot {
 
             let _ = match command.data.name.as_str() {
                 "hello" => {
-                    respond_to_interaction(&ctx, &command, "hello".to_owned()).await.expect("Cannot repond to slash command")
+                    respond_to_interaction(&ctx, &command, "Hello!".to_owned()).await.expect("Cannot repond to slash command")
                 },
                 "clean" => {
                     respond_to_interaction(&ctx, &command, "Cleaning the channel of non-submission messages.".to_owned()).await.expect("Cannot repond to slash command");
@@ -107,16 +111,16 @@ async fn serenity(
     #[shuttle_secrets::Secrets] secret_store: SecretStore,
 ) -> shuttle_serenity::ShuttleSerenity {
     // Get the discord token set in `Secrets.toml`
-    let token = if let Some(token) = secret_store.get("DISCORD_TOKEN") {
+    let token: String = if let Some(token) = secret_store.get("DISCORD_TOKEN") {
         token
     } else {
         return Err(anyhow!("'DISCORD_TOKEN' was not found").into());
     };
 
     // Set gateway intents, which decides what events the bot will be notified about
-    let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
+    let intents: GatewayIntents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
 
-    let client = Client::builder(&token, intents)
+    let client: Client = Client::builder(&token, intents)
         .event_handler(Bot)
         .await
         .expect("Err creating client");
